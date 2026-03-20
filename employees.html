@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Employees — MarketPro</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<script src="app.js"></script>
+<script src="sidebar.js"></script>
+
+<!-- Add Employee Modal -->
+<div class="modal-overlay" id="employeeModal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <div class="modal-title">Add Employee</div>
+      <button class="modal-close" onclick="closeModal('employeeModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input type="text" id="eName" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Username *</label>
+          <input type="text" id="eUsername" class="form-control" placeholder="login name">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          <input type="password" id="ePassword" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Role *</label>
+          <select id="eRole" class="form-control">
+            <option value="cashier">Cashier</option>
+            <option value="storekeeper">Storekeeper</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input type="text" id="ePhone" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="eEmail" class="form-control">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('employeeModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEmployee()">Add Employee</button>
+    </div>
+  </div>
+</div>
+
+<script>
+buildLayout("Employees", "employees");
+
+(async () => {
+  const user = await requireAuth();
+  if (!user) return;
+  if (user.role !== "admin") {
+    document.getElementById("pageContent").innerHTML =
+      `<div class="alert alert-danger">🔒 Access denied. Admin only.</div>`;
+    return;
+  }
+  renderSidebarUser(user);
+  document.getElementById("topbarActions").innerHTML =
+    `<button class="btn btn-primary" onclick="openModal('employeeModal')">+ Add Employee</button>`;
+  loadEmployees();
+})();
+
+async function loadEmployees() {
+  const content = document.getElementById("pageContent");
+  content.innerHTML = `
+    <div class="panel">
+      <div class="panel-body" style="padding:0" id="empTable">
+        <div style="padding:40px;text-align:center"><span class="spinner"></span></div>
+      </div>
+    </div>`;
+
+  try {
+    const employees = await apiFetch("/employees");
+    const el = document.getElementById("empTable");
+    if (employees.length === 0) {
+      el.innerHTML = `<div class="empty-state"><p>No employees found.</p></div>`;
+      return;
+    }
+    el.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Phone</th><th>Status</th><th>Last Login</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${employees.map(e => `
+              <tr>
+                <td><strong>${e.full_name}</strong></td>
+                <td style="color:var(--muted);font-family:monospace">${e.username}</td>
+                <td>${roleBadge(e.role)}</td>
+                <td>${e.phone || "—"}</td>
+                <td>${e.is_active ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-red">Inactive</span>'}</td>
+                <td style="font-size:.8rem;color:var(--muted)">${e.last_login ? formatDateTime(e.last_login) : "Never"}</td>
+                <td>
+                  <button class="btn btn-danger btn-sm" onclick="deactivateEmployee(${e.employee_id},'${e.full_name.replace(/'/g,"\\'")}')">Deactivate</button>
+                </td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:12px 18px;font-size:.8rem;color:var(--muted);border-top:1px solid var(--border)">
+        ${employees.length} employee${employees.length!==1?"s":""}
+      </div>`;
+  } catch (err) {
+    document.getElementById("empTable").innerHTML =
+      `<div class="alert alert-danger" style="margin:16px">${err.message}</div>`;
+  }
+}
+
+async function saveEmployee() {
+  const body = {
+    full_name: document.getElementById("eName").value.trim(),
+    username:  document.getElementById("eUsername").value.trim(),
+    password:  document.getElementById("ePassword").value,
+    role:      document.getElementById("eRole").value,
+    phone:     document.getElementById("ePhone").value.trim() || null,
+    email:     document.getElementById("eEmail").value.trim() || null,
+  };
+  if (!body.full_name || !body.username || !body.password) {
+    toast("Name, username and password are required.", "error"); return;
+  }
+  try {
+    await apiFetch("/employees", "POST", body);
+    toast("Employee added.");
+    closeModal("employeeModal");
+    loadEmployees();
+  } catch (err) { toast(err.message, "error"); }
+}
+
+async function deactivateEmployee(id, name) {
+  if (!confirm(`Deactivate "${name}"? They will no longer be able to log in.`)) return;
+  try {
+    await apiFetch(`/employees/${id}`, "DELETE");
+    toast("Employee deactivated.");
+    loadEmployees();
+  } catch (err) { toast(err.message, "error"); }
+}
+</script>
+</body>
+</html>

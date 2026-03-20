@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Point of Sale — MarketPro</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<script src="app.js"></script>
+<script src="sidebar.js"></script>
+
+<!-- Receipt Modal -->
+<div class="modal-overlay" id="receiptModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">🧾 Sale Receipt</div>
+      <button class="modal-close" onclick="closeModal('receiptModal')">✕</button>
+    </div>
+    <div class="modal-body" id="receiptBody" style="font-family:monospace;font-size:.85rem"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="printReceipt()">🖨 Print</button>
+      <button class="btn btn-primary" onclick="newSale()">New Sale</button>
+    </div>
+  </div>
+</div>
+
+<script>
+buildLayout("Point of Sale", "sales");
+
+let cart = [];
+let allProducts = [];
+let categories = [];
+let currentUser = null;
+
+(async () => {
+  currentUser = await requireAuth();
+  if (!currentUser) return;
+  renderSidebarUser(currentUser);
+  await Promise.all([loadCategories(), loadProducts()]);
+  renderPOS();
+})();
+
+async function loadCategories() {
+  categories = await apiFetch("/categories");
+}
+
+async function loadProducts() {
+  allProducts = await apiFetch("/products");
+}
+
+function renderPOS() {
+  const content = document.getElementById("pageContent");
+  content.style.padding = "20px";
+  content.innerHTML = `
+    <div class="pos-layout">
+      <!-- Left: Products -->
+      <div class="pos-products">
+        <div class="filter-bar" style="margin-bottom:14px">
+          <div class="search-wrap" style="flex:1">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="posSearch" class="form-control" placeholder="Search product or scan barcode..." oninput="filterPOSProducts()">
+          </div>
+          <select id="posCatFilter" class="form-control" style="width:160px" onchange="filterPOSProducts()">
+            <option value="">All Categories</option>
+            ${categories.map(c => `<option value="${c.category_id}">${c.name}</option>`).join("")}
+          </select>
+        </div>
+        <div class="product-grid" id="posProductGrid"></div>
+      </div>
+
+      <!-- Right: Cart -->
+      <div class="pos-cart">
+        <div class="cart-header">
+          🛒 Current Sale
+          <span id="cartCount" style="color:var(--muted);font-weight:400;font-size:.85rem;margin-left:8px"></span>
+        </div>
+
+        <div class="cart-items" id="cartItems">
+          <div class="empty-state" style="padding:40px 20px">
+            <div class="empty-icon">🛒</div>
+            <p>Add products to start a sale</p>
+          </div>
+        </div>
+
+        <div class="cart-footer">
+          <div class="cart-total-row">
+            <span>Subtotal</span>
+            <span id="cartSubtotal">M 0.00</span>
+          </div>
+          <div class="cart-total-row" style="align-items:center">
+            <span>Discount (M)</span>
+            <input type="number" id="discountInput" class="form-control" style="width:90px;text-align:right;padding:4px 8px"
+                   value="0" min="0" step="0.50" oninput="updateTotals()">
+          </div>
+          <div class="cart-total-row grand">
+            <span>TOTAL</span>
+            <span id="cartTotal">M 0.00</span>
+          </div>
+
+          <div style="margin-top:14px">
+            <label class="form-label">Payment Method</label>
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+              <button class="btn btn-outline btn-sm pay-btn active-pay" data-method="cash" onclick="selectPayment('cash')">💵 Cash</button>
+              <button class="btn btn-outline btn-sm pay-btn" data-method="card" onclick="selectPayment('card')">💳 Card</button>
+              <button class="btn btn-outline btn-sm pay-btn" data-method="mobile_money" onclick="selectPayment('mobile_money')">📱 Mobile</button>
+            </div>
+            <label class="form-label">Amount Paid (M)</label>
+            <input type="number" id="amountPaid" class="form-control" placeholder="0.00" min="0" step="0.50" oninput="updateChange()" style="margin-bottom:8px">
+            <div class="cart-total-row" style="color:var(--green)">
+              <span>Change</span>
+              <span id="changeGiven">M 0.00</span>
+            </div>
+          </div>
+
+          <div style="margin-top:12px">
+            <label class="form-label">Customer (optional)</label>
+            <select id="customerSelect" class="form-control" style="margin-bottom:10px">
+              <option value="">Walk-in Customer</option>
+            </select>
+          </div>
+
+          <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:6px;font-size:1rem;padding:13px"
+                  onclick="completeSale()" id="checkoutBtn">
+            ✅ Complete Sale
+          </button>
+          <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:6px;color:var(--muted)"
+                  onclick="clearCart()">
+            Clear Cart
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  renderProductGrid(allProducts);
+  loadCustomers();
+}
+
+let selectedPayment = "cash";
+
+function selectPayment(method) {
+  selectedPayment = method;
+  document.querySelectorAll(".pay-btn").forEach(b => {
+    b.classList.toggle("active-pay", b.dataset.method === method);
+    b.style.borderColor = b.dataset.method === method ? "var(--accent)" : "";
+    b.style.color = b.dataset.method === method ? "var(--accent)" : "";
+  });
+}
+
+async function loadCustomers() {
+  try {
+    const customers = await apiFetch("/customers");
+    const sel = document.getElementById("customerSelect");
+    customers.forEach(c => {
+      if (c.name !== "Walk-in Customer")
+        sel.innerHTML += `<option value="${c.customer_id}">${c.name} ${c.phone ? "("+c.phone+")" : ""}</option>`;
+    });
+  } catch {}
+}
+
+function filterPOSProducts() {
+  const search = document.getElementById("posSearch").value.toLowerCase();
+  const catId  = document.getElementById("posCatFilter").value;
+  const filtered = allProducts.filter(p => {
+    const matchSearch = !search || p.name.toLowerCase().includes(search) || (p.barcode || "").includes(search);
+    const matchCat    = !catId  || String(p.category_id) === catId;
+    return matchSearch && matchCat;
+  });
+  renderProductGrid(filtered);
+}
+
+function renderProductGrid(products) {
+  const grid = document.getElementById("posProductGrid");
+  if (!grid) return;
+  if (products.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1"><div class="empty-state"><div class="empty-icon">🔍</div><p>No products found</p></div></div>`;
+    return;
+  }
+  grid.innerHTML = products.map(p => `
+    <div class="product-card ${p.stock_qty === 0 ? 'out-of-stock' : ''}"
+         onclick="${p.stock_qty > 0 ? `addToCart(${p.product_id})` : ''}">
+      <div class="p-cat">${p.category_name || ""}</div>
+      <div class="p-name">${p.name}</div>
+      <div class="p-price">${formatMoney(p.sell_price)}</div>
+      <div class="p-stock">${p.stock_qty === 0 ? '❌ Out of stock' : `📦 ${p.stock_qty} ${p.unit}`}</div>
+    </div>`).join("");
+}
+
+function addToCart(productId) {
+  const product = allProducts.find(p => p.product_id === productId);
+  if (!product || product.stock_qty === 0) return;
+  const existing = cart.find(c => c.product_id === productId);
+  if (existing) {
+    if (existing.quantity >= product.stock_qty) {
+      toast("Not enough stock!", "warning"); return;
+    }
+    existing.quantity++;
+  } else {
+    cart.push({ product_id: productId, name: product.name, unit: product.unit,
+                unit_price: parseFloat(product.sell_price), quantity: 1,
+                max_stock: product.stock_qty });
+  }
+  renderCart();
+}
+
+function updateQty(productId, delta) {
+  const item = cart.find(c => c.product_id === productId);
+  if (!item) return;
+  item.quantity += delta;
+  if (item.quantity <= 0) {
+    cart = cart.filter(c => c.product_id !== productId);
+  } else if (item.quantity > item.max_stock) {
+    item.quantity = item.max_stock;
+    toast("Max stock reached!", "warning");
+  }
+  renderCart();
+}
+
+function renderCart() {
+  const el = document.getElementById("cartItems");
+  const countEl = document.getElementById("cartCount");
+  if (!el) return;
+
+  if (cart.length === 0) {
+    el.innerHTML = `<div class="empty-state" style="padding:40px 20px"><div class="empty-icon">🛒</div><p>Cart is empty</p></div>`;
+    if (countEl) countEl.textContent = "";
+    updateTotals();
+    return;
+  }
+
+  if (countEl) countEl.textContent = `(${cart.reduce((s,i) => s + i.quantity, 0)} items)`;
+
+  el.innerHTML = cart.map(item => `
+    <div class="cart-item">
+      <div class="cart-item-name">
+        <div style="font-size:.82rem;font-weight:600">${item.name}</div>
+        <div style="font-size:.75rem;color:var(--muted)">${formatMoney(item.unit_price)} / ${item.unit}</div>
+      </div>
+      <div class="cart-item-qty">
+        <button class="qty-btn" onclick="updateQty(${item.product_id}, -1)">−</button>
+        <span style="font-size:.9rem;font-weight:700;min-width:22px;text-align:center">${item.quantity}</span>
+        <button class="qty-btn" onclick="updateQty(${item.product_id}, 1)">+</button>
+      </div>
+      <div class="cart-item-price">${formatMoney(item.unit_price * item.quantity)}</div>
+    </div>`).join("");
+
+  updateTotals();
+}
+
+function updateTotals() {
+  const subtotal   = cart.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+  const discount   = parseFloat(document.getElementById("discountInput")?.value || 0);
+  const total      = Math.max(subtotal - discount, 0);
+  if (document.getElementById("cartSubtotal")) document.getElementById("cartSubtotal").textContent = formatMoney(subtotal);
+  if (document.getElementById("cartTotal"))    document.getElementById("cartTotal").textContent    = formatMoney(total);
+  // Auto-fill amount paid for cash
+  const paidInput = document.getElementById("amountPaid");
+  if (paidInput && !paidInput.value) paidInput.placeholder = formatMoney(total).replace("M ","");
+  updateChange();
+}
+
+function updateChange() {
+  const discount = parseFloat(document.getElementById("discountInput")?.value || 0);
+  const subtotal = cart.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+  const total    = Math.max(subtotal - discount, 0);
+  const paid     = parseFloat(document.getElementById("amountPaid")?.value || 0);
+  const change   = Math.max(paid - total, 0);
+  if (document.getElementById("changeGiven"))
+    document.getElementById("changeGiven").textContent = formatMoney(change);
+}
+
+function clearCart() {
+  if (cart.length > 0 && !confirm("Clear cart?")) return;
+  cart = [];
+  renderCart();
+}
+
+let lastSale = null;
+
+async function completeSale() {
+  if (cart.length === 0) { toast("Cart is empty!", "warning"); return; }
+  const discount  = parseFloat(document.getElementById("discountInput").value || 0);
+  const subtotal  = cart.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+  const total     = Math.max(subtotal - discount, 0);
+  const paid      = parseFloat(document.getElementById("amountPaid").value || total);
+  const custId    = document.getElementById("customerSelect").value || null;
+
+  if (paid < total) { toast("Amount paid is less than total!", "error"); return; }
+
+  const btn = document.getElementById("checkoutBtn");
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Processing...`;
+
+  try {
+    const res = await apiFetch("/sales", "POST", {
+      customer_id: custId,
+      payment_method: selectedPayment,
+      discount,
+      amount_paid: paid,
+      items: cart.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_price: i.unit_price }))
+    });
+
+    lastSale = { sale_id: res.sale_id, total: res.total, change: res.change,
+                 items: [...cart], paid, discount };
+
+    // Refresh product stock
+    await loadProducts();
+    renderProductGrid(allProducts);
+
+    showReceipt(lastSale);
+  } catch (err) {
+    toast(err.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "✅ Complete Sale";
+  }
+}
+
+function showReceipt(sale) {
+  const now = new Date().toLocaleString("en-GB");
+  const body = document.getElementById("receiptBody");
+  body.innerHTML = `
+    <div style="text-align:center;margin-bottom:16px;border-bottom:1px dashed var(--border);padding-bottom:14px">
+      <div style="font-size:1.1rem;font-weight:700">🛒 MarketPro</div>
+      <div style="color:var(--muted);font-size:.8rem">${now}</div>
+      <div style="color:var(--muted);font-size:.8rem">Receipt #${sale.sale_id}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+      <thead><tr>
+        <th style="text-align:left;padding:4px 0;color:var(--muted)">Item</th>
+        <th style="text-align:center;padding:4px 0;color:var(--muted)">Qty</th>
+        <th style="text-align:right;padding:4px 0;color:var(--muted)">Price</th>
+        <th style="text-align:right;padding:4px 0;color:var(--muted)">Total</th>
+      </tr></thead>
+      <tbody>
+        ${sale.items.map(i => `
+          <tr>
+            <td style="padding:3px 0;font-size:.82rem">${i.name}</td>
+            <td style="text-align:center;padding:3px 0">${i.quantity}</td>
+            <td style="text-align:right;padding:3px 0">${i.unit_price.toFixed(2)}</td>
+            <td style="text-align:right;padding:3px 0;font-weight:600">${(i.unit_price*i.quantity).toFixed(2)}</td>
+          </tr>`).join("")}
+      </tbody>
+    </table>
+    <div style="border-top:1px dashed var(--border);padding-top:10px">
+      ${sale.discount > 0 ? `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Discount</span><span>-${sale.discount.toFixed(2)}</span></div>` : ""}
+      <div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:6px">
+        <span>TOTAL</span><span>M ${sale.total.toFixed(2)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Paid</span><span>M ${sale.paid.toFixed(2)}</span></div>
+      <div style="display:flex;justify-content:space-between;color:var(--green);font-weight:600"><span>Change</span><span>M ${sale.change.toFixed(2)}</span></div>
+    </div>
+    <div style="text-align:center;margin-top:16px;padding-top:12px;border-top:1px dashed var(--border);color:var(--muted);font-size:.78rem">
+      Thank you for shopping with us! 🙏
+    </div>`;
+  openModal("receiptModal");
+}
+
+function printReceipt() {
+  const body = document.getElementById("receiptBody").innerHTML;
+  const win  = window.open("", "_blank", "width=400,height=600");
+  win.document.write(`<html><head><title>Receipt</title>
+    <style>body{font-family:monospace;font-size:13px;padding:20px;background:#fff;color:#000}
+    table{width:100%;border-collapse:collapse}th,td{padding:4px 0}</style>
+    </head><body>${body}</body></html>`);
+  win.document.close();
+  win.print();
+}
+
+function newSale() {
+  cart = [];
+  closeModal("receiptModal");
+  document.getElementById("discountInput").value = 0;
+  document.getElementById("amountPaid").value = "";
+  document.getElementById("customerSelect").value = "";
+  selectPayment("cash");
+  renderCart();
+}
+</script>
+</body>
+</html>
