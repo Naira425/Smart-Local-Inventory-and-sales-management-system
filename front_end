@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Smart Inventory & Sales System</title>
+    <!-- Google Fonts & Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js CDN for sales graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* LOGIN PAGE STYLES */
+        .login-page {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f2b3d 0%, #1b4f6e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .login-page::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle at 20% 40%, rgba(255,255,255,0.05) 1.5px, transparent 1.5px);
+            background-size: 32px 32px;
+            pointer-events: none;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 480px;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 2rem;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.25s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-container:hover {
+            transform: translateY(-3px);
+        }
+
+        .brand-header {
+            background: linear-gradient(105deg, #1e3a4d 0%, #0f2c3b 100%);
+            padding: 1.8rem 2rem;
+            text-align: center;
+            color: white;
+        }
+
+        .brand-icon {
+            font-size: 2.8rem;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.6rem;
+            border-radius: 60px;
+            width: 70px;
+            height: 70px;
+            line-height: 1;
+        }
+
+        .brand-icon i {
+            font-size: 2.3rem;
+        }
+
+        .brand-header h1 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            margin-top: 0.5rem;
+        }
+
+        .brand-header p {
+            font-size: 0.85rem;
+            opacity: 0.85;
+            margin-top: 0.4rem;
+        }
+
+        .form-wrapper {
+            padding: 2rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #1e2f3a;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-field {
+            display: flex;
+            align-items: center;
+            background-color: #f1f5f9;
+            border-radius: 1rem;
+            border: 1.5px solid #e2e8f0;
+            transition: all 0.2s;
+            padding: 0.1rem 0.1rem 0.1rem 1rem;
+        }
+
+        .input-field i {
+            color: #5b7c91;
+            font-size: 1.1rem;
+            width: 32px;
+            text-align: center;
+        }
+
+        .input-field input {
+            width: 100%;
+            padding: 0.85rem 0.8rem 0.85rem 0.2rem;
+            border: none;
+            background: transparent;
+            font-size: 0.95rem;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            color: #0a1c26;
+        }
+
+        .input-field input::placeholder {
+            color: #94a3b8;
+            font-weight: 400;
+        }
+
+        .input-field:focus-within {
+            border-color: #2c7da0;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(44, 125, 160, 0.12);
+        }
+
+        .forgot-row {
+            text-align: right;
+            margin-bottom: 1.8rem;
+        }
+
+        .forgot-link {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #2c7da0;
+            text-decoration: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .login-btn {
+            background: linear-gradient(95deg, #1f5e7a, #154e66);
+            width: 100%;
+            padding: 0.9rem;
+            border: none;
+            border-radius: 1.5rem;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+
+        .login-btn:hover {
+            background: linear-gradient(95deg, #154e66, #0e3b4f);
+            transform: scale(0.98);
+        }
+
+        .message-area {
+            margin-top: 1.5rem;
+            padding: 0.7rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            text-align: center;
+            font-weight: 500;
+            background: #f8fafc;
+            color: #2c3e50;
+            border-left: 4px solid #2c7da0;
+        }
+
+        .message-area.error {
+            background: #fee2e2;
+            color: #b91c1c;
+            border-left-color: #b91c1c;
+        }
+
+        footer {
+            background: #f1f5f9;
+            padding: 1rem;
+            text-align: center;
+            font-size: 0.7rem;
+            color: #5b6e7c;
+            border-top: 1px solid #e2edf2;
+        }
+
+        /* DASHBOARD STYLES */
+        .dashboard-app {
+            display: none;
+            font-family: 'Inter', sans-serif;
+            background: #eef2f7;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #0f2b3a 0%, #0a1e2a 100%);
+            color: white;
+            flex-shrink: 0;
+            transition: all 0.3s;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.08);
+        }
+
+        .sidebar-header {
+            padding: 1.8rem 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-header h2 i {
+            font-size: 1.6rem;
+            color: #ffb347;
+        }
+
+        .nav-menu {
+            padding: 1.5rem 0;
+        }
+
+        .nav-item {
+            margin-bottom: 0.25rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0.75rem 1.5rem;
+            color: #cfdfed;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .nav-link i {
+            width: 24px;
+            font-size: 1.1rem;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: #1f4b62;
+            color: white;
+            border-left: 4px solid #ffb347;
+        }
+
+        .submenu {
+            padding-left: 3rem;
+            list-style: none;
+            display: none;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .submenu.show {
+            display: block;
+        }
+
+        .submenu li a {
+            display: block;
+            padding: 0.5rem 1rem;
+            color: #bdd4e3;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .submenu li a:hover {
+            color: white;
+            padding-left: 1.3rem;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 1.8rem 2rem;
+            overflow-y: auto;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1rem 1.8rem;
+            border-radius: 1.2rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        }
+
+        .page-title h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e2f3a;
+        }
+
+        .logout-btn {
+            background: #eef2f7;
+            border: none;
+            padding: 0.5rem 1.2rem;
+            border-radius: 2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .card {
+            background: white;
+            border-radius: 1.2rem;
+            padding: 1.5rem;
+            margin-bottom: 1.8rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            align-items: flex-end;
+        }
+
+        select, input, button {
+            padding: 0.6rem 1rem;
+            border-radius: 0.8rem;
+            border: 1px solid #cbd5e1;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-primary {
+            background: #1f5e7a;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #0e3b4f;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 0.75rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+        }
+
+        .action-icons i {
+            margin: 0 4px;
+            cursor: pointer;
+            color: #4b6b7e;
+            transition: 0.2s;
+        }
+
+        .action-icons i:hover {
+            color: #1f5e7a;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .form-row {
+            margin-bottom: 1rem;
+        }
+
+        .form-row label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.3rem;
+        }
+
+        .form-row input {
+            width: 100%;
+        }
+
+        .price-highlight {
+            font-weight: 600;
+            color: #2c7da0;
+        }
+
+        .responsive-table {
+            overflow-x: auto;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 250px;
+            }
+            .main-content {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- LOGIN PAGE -->
+    <div id="loginPage" class="login-page">
+        <div class="login-container">
+            <div class="brand-header">
+                <div class="brand-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <h1>SMART LOCAL INVENTORY<br>AND SALES MANAGEMENT SYSTEM</h1>
+                <p><i class="fas fa-store"></i> real-time insights • smart stock control</p>
+            </div>
+            <div class="form-wrapper">
+                <form id="loginForm">
+                    <div class="input-group">
+                        <label for="username"><i class="fas fa-user"></i> Username</label>
+                        <div class="input-field">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="loginUsername" name="username" placeholder="Enter your username" autocomplete="username">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="password"><i class="fas fa-lock"></i> Password</label>
+                        <div class="input-field">
+                            <i class="fas fa-key"></i>
+                            <input type="password" id="loginPassword" name="password" placeholder="Enter your password" autocomplete="current-password">
+                        </div>
+                    </div>
+                    <div class="forgot-row">
+                        <a class="forgot-link" id="forgotPasswordBtn">
+                            <i class="fas fa-question-circle"></i> Forgot password?
+                        </a>
+                    </div>
+                    <button type="submit" class="login-btn">
+                        <i class="fas fa-arrow-right-to-bracket"></i> LOGIN
+                    </button>
+                </form>
+                <div id="loginMessage" class="message-area">
+                    <i class="fas fa-shield-alt"></i> Enter credentials to access the system
+                </div>
+            </div>
+            <footer>
+                <i class="fas fa-database"></i> Local inventory intelligence © 2025
+            </footer>
+        </div>
+    </div>
+
+    <!-- DASHBOARD (Initially Hidden) -->
+    <div id="dashboardApp" class="dashboard-app">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-shopping-cart"></i> Smart Inventory</h2>
+                <p style="font-size:0.7rem; opacity:0.7;">Admin / Manager Panel</p>
+            </div>
+            <div class="nav-menu">
+                <div class="nav-item">
+                    <div class="nav-link" data-toggle="sales-sub"><i class="fas fa-chart-line"></i> Sales <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 0.7rem;"></i></div>
+                    <ul class="submenu" id="sales-sub">
+                        <li><a data-view="sales-statement">📊 Sales Statement</a></li>
+                        <li><a data-view="sales-category">📁 Category Sales</a></li>
+                        <li><a data-view="sales-product">🏷️ Product Sales</a></li>
+                    </ul>
+                </div>
+                <div class="nav-item">
+                    <div class="nav-link" data-toggle="inventory-sub"><i class="fas fa-boxes"></i> Inventory <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 0.7rem;"></i></div>
+                    <ul class="submenu" id="inventory-sub">
+                        <li><a data-view="inv-category">📦 Category View</a></li>
+                        <li><a data-view="inv-statement">📑 Inventory Statement</a></li>
+                        <li><a data-view="inv-product">✏️ Manage Products (CRUD)</a></li>
+                        <li><a data-view="inv-supplier">🏭 Supplier per Product</a></li>
+                    </ul>
+                </div>
+                <div class="nav-item">
+                    <div class="nav-link" data-view="supplier-info"><i class="fas fa-truck"></i> Supplier Information</div>
+                </div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="top-bar">
+                <div class="page-title"><h1 id="dynamicTitle">Sales Statement</h1></div>
+                <button class="logout-btn" id="dashboardLogout"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+            <div id="dashboardContent">
+                <div class="card">Loading Smart Dashboard...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Product CRUD -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Add Product</h3>
+            <input type="hidden" id="productId">
+            <div class="form-row"><label>Product Name *</label><input type="text" id="prodName" placeholder="Product name"></div>
+            <div class="form-row"><label>Category *</label><input type="text" id="prodCategory" placeholder="e.g., Electronics, Furniture"></div>
+            <div class="form-row"><label>Quantity *</label><input type="number" id="prodQty" placeholder="Stock quantity"></div>
+            <div class="form-row"><label>Price per Unit ($) *</label><input type="number" step="0.01" id="prodPrice" placeholder="Product price"></div>
+            <div class="form-row"><label>Supplier *</label><input type="text" id="prodSupplier" placeholder="Supplier name"></div>
+            <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1rem;">
+                <button id="saveProductBtn" class="btn-primary">Save</button>
+                <button id="closeModalBtn" style="background:#ccc;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---------- MOCK DATA ----------
+        let products = [
+            { id: 1, name: "Wireless Mouse", category: "Electronics", quantity: 45, price: 29.99, supplier: "TechSupply Ltd" },
+            { id: 2, name: "Notebook", category: "Stationery", quantity: 120, price: 4.99, supplier: "PaperHub" },
+            { id: 3, name: "Office Chair", category: "Furniture", quantity: 12, price: 129.99, supplier: "ErgoFurnish" },
+            { id: 4, name: "USB Cable", category: "Electronics", quantity: 88, price: 9.99, supplier: "CableMaster" },
+        ];
+
+        let salesRecords = [
+            { id: 1, productId: 1, productName: "Wireless Mouse", category: "Electronics", amount: 29.99, date: "2025-02-10", quantity: 2 },
+            { id: 2, productId: 2, productName: "Notebook", category: "Stationery", amount: 4.99, date: "2025-02-15", quantity: 10 },
+            { id: 3, productId: 1, productName: "Wireless Mouse", category: "Electronics", amount: 29.99, date: "2025-03-01", quantity: 1 },
+            { id: 4, productId: 3, productName: "Office Chair", category: "Furniture", amount: 129.99, date: "2025-01-20", quantity: 2 },
+            { id: 5, productId: 4, productName: "USB Cable", category: "Electronics", amount: 9.99, date: "2025-03-10", quantity: 5 },
+            { id: 6, productId: 2, productName: "Notebook", category: "Stationery", amount: 4.99, date: "2025-03-12", quantity: 15 },
+        ];
+
+        let chartInstance = null;
+
+        // Helper functions
+        function filterSalesByPeriod(records, period) {
+            const now = new Date();
+            return records.filter(rec => {
+                const d = new Date(rec.date);
+                if (period === 'weekly') {
+                    const weekAgo = new Date(); weekAgo.setDate(now.getDate() - 7);
+                    return d >= weekAgo;
+                } else if (period === 'monthly') {
+                    const monthAgo = new Date(); monthAgo.setMonth(now.getMonth() - 1);
+                    return d >= monthAgo;
+                } else if (period === 'yearly') {
+                    const yearAgo = new Date(); yearAgo.setFullYear(now.getFullYear() - 1);
+                    return d >= yearAgo;
+                }
+                return true;
+            });
+        }
+
+        // Dashboard rendering functions
+        function renderSalesStatement(period = 'monthly') {
+            let filtered = filterSalesByPeriod(salesRecords, period);
+            let totalRevenue = filtered.reduce((sum, r) => sum + r.amount * r.quantity, 0);
+            let html = `<div class="card"><h3><i class="fas fa-chart-line"></i> Overall Sales Statement (${period.toUpperCase()})</h3>
+            <div class="filter-group"><label>Select Period:</label><select id="periodSelectSales"><option value="weekly">Weekly</option><option value="monthly" selected>Monthly</option><option value="yearly">Yearly</option><option value="all">All Time</option></select></div>
+            <p><strong>Total Revenue: $${totalRevenue.toFixed(2)}</strong></p>
+            <canvas id="salesChart" width="400" height="200"></canvas>
+            <div class="responsive-table"><table><thead><tr><th>Product</th><th>Category</th><th>Qty</th><th>Amount</th><th>Date</th></tr></thead><tbody>`;
+            filtered.forEach(s => { html += `<tr><td>${s.productName}</td><td>${s.category}</td><td>${s.quantity}</td><td>$${(s.amount*s.quantity).toFixed(2)}</td><td>${s.date}</td></tr>`; });
+            html += `</tbody></table></div></div>`;
+            document.getElementById('dashboardContent').innerHTML = html;
+            document.getElementById('periodSelectSales').value = period;
+            document.getElementById('periodSelectSales').addEventListener('change', (e) => renderSalesStatement(e.target.value));
+            const productMap = new Map();
+            filtered.forEach(s => { let name = s.productName; let rev = s.amount * s.quantity; productMap.set(name, (productMap.get(name)||0)+rev); });
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            if(chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, { type: 'bar', data: { labels: Array.from(productMap.keys()), datasets: [{ label: 'Revenue ($)', data: Array.from(productMap.values()), backgroundColor: '#2c7da0' }] } });
+        }
+
+        function renderCategorySales(period='monthly') {
+            let filtered = filterSalesByPeriod(salesRecords, period);
+            let catMap = new Map();
+            filtered.forEach(s => { catMap.set(s.category, (catMap.get(s.category)||0) + (s.amount*s.quantity)); });
+            let html = `<div class="card"><h3>Sales by Category</h3><div class="filter-group"><select id="catPeriod"><option value="weekly">Weekly</option><option value="monthly" selected>Monthly</option><option value="yearly">Yearly</option><option value="all">All</option></select></div><table><thead><tr><th>Category</th><th>Total Revenue</th></tr></thead><tbody>`;
+            for(let [cat, rev] of catMap.entries()) html += `<tr><td>${cat}</td><td>$${rev.toFixed(2)}</td></tr>`;
+            html += `</tbody></table></div>`;
+            document.getElementById('dashboardContent').innerHTML = html;
+            document.getElementById('catPeriod').value = period;
+            document.getElementById('catPeriod').addEventListener('change', (e) => renderCategorySales(e.target.value));
+        }
+
+        function renderProductSales(period='monthly') {
+            let filtered = filterSalesByPeriod(salesRecords, period);
+            let prodMap = new Map();
+            filtered.forEach(s => { prodMap.set(s.productName, (prodMap.get(s.productName)||0) + (s.amount*s.quantity)); });
+            let html = `<div class="card"><h3>Sales by Product</h3><div class="filter-group"><select id="prodPeriod"><option value="weekly">Weekly</option><option value="monthly" selected>Monthly</option><option value="yearly">Yearly</option></select></div><table><thead><tr><th>Product</th><th>Revenue</th></tr></thead><tbody>`;
+            for(let [prod, rev] of prodMap.entries()) html += `<tr><td>${prod}</td><td>$${rev.toFixed(2)}</td></tr>`;
+            html += `</tbody></table></div>`;
+            document.getElementById('dashboardContent').innerHTML = html;
+            document.getElementById('prodPeriod').value = period;
+            document.getElementById('prodPeriod').addEventListener('change', (e) => renderProductSales(e.target.value));
+        }
+
+        function renderInventoryCategory() {
+            let catMap = new Map();
+            products.forEach(p => { catMap.set(p.category, (catMap.get(p.category)||0) + p.quantity); });
+            let html = `<div class="card"><h3>Inventory by Category</h3><table><thead><tr><th>Category</th><th>Total Units</th></tr></thead><tbody>`;
+            for(let [cat, qty] of catMap.entries()) html += `<tr><td>${cat}</td><td>${qty}</td></tr>`;
+            html += `</tbody></table></div>`;
+            document.getElementById('dashboardContent').innerHTML = html;
+        }
+
+        function renderInventoryStatement() {
+            let totalValue = products.reduce((sum, p) => sum + (p.quantity * p.price), 0);
+            let html = `<div class="card"><h3>Overall Inventory Statement</h3><p><strong>Total Products:</strong> ${products.length}</p><p><strong>Total Units:</strong> ${products.reduce((s,p)=>s+p.quantity,0)}</p><p><strong>Estimated Stock Value:</strong> $${totalValue.toFixed(2)}</p><div class="responsive-table"><table><thead><tr><th>Product</th><th>Category</th><th>Quantity</th><th>Unit Price</th><th>Total Value</th><th>Supplier</th></tr></thead><tbody>`;
+            products.forEach(p => { 
+                let totalValueItem = (p.quantity * p.price).toFixed(2);
+                html += `<tr><td>${p.name}</td><td>${p.category}</td><td>${p.quantity}</td><td class="price-highlight">$${p.price.toFixed(2)}</td><td>$${totalValueItem}</td><td>${p.supplier}</td></tr>`;
+            });
+            html += `</tbody></table></div></div>`;
+            document.getElementById('dashboardContent').innerHTML = html;
+        }
+
+        function renderProductManagement() {
+            let html = `<div class="card"><h3>Manage Products (Create, Read, Update, Delete)</h3><button id="addNewProductBtn" class="btn-primary" style="margin-bottom:1rem;"><i class="fas fa-plus"></i> Add New Product</button><div class="responsive-table"><table><thead><tr><th>ID</th><th>Product Name</th><th>Category</th><th>Quantity</th><th>Unit Price</th><th>Supplier</th><th>Actions</th></tr></thead><tbody>`;
+            products.forEach(p => {
+                html += `<tr><td>${p.id}</td><td><strong>${p.name}</strong></td><td>${p.category}</td><td>${p.quantity}</td><td class="price-highlight">$${p.price.toFixed(2)}</td><td>${p.supplier}</td><td class="action-icons"><i class="fas fa-edit edit-prod" data-id="${p.id}" title="Edit"></i><i class="fas fa-trash-alt delete-prod" data-id="${p.id}" title="Delete"></i></td></tr>`;
+            });
+            html += `</tbody></table></div></div>`;
+            document.getElementById('dashboardContent').innerHTML = html;
+            document.getElementById('addNewProductBtn')?.addEventListener('click', () => openProductModal());
+            document.querySelectorAll('.edit-prod').forEach(btn => {
+                btn.addEventListener('click', () => { let id = parseInt(btn.dataset.id); let prod = products.find(p=>p.id===id); if(prod) openProductModal(prod); });
+            });
+            document.querySelectorAll('.delete-prod').forEach(btn => {
+                btn.addEventListener('click', () => { if(confirm('Delete this product?')) { let id = parseInt(btn.dataset.id); products = products.filter(p=>p.id!==id); renderProductManagement(); } });
+            });
+        }
+
+        function openProductModal(product=null) {
+            const modal = document.getElementById('productModal');
+            document.getElementById('modalTitle').innerText = product ? "Edit Product" : "Add New Product";
+            document.getElementById('productId').value = product ? product.id : '';
+            document.getElementById('prodName').value = product ? product.name : '';
+            document.getElementById('prodCategory').value = product ? product.category : '';
+            document.getElementById('prodQty').value = product ? product.quantity : '';
+            document.getElementById('prodPrice').value = product ? product.price : '';
+            document.getElementById('prodSupplier').value = product ? product.supplier : '';
+            modal.style.display = 'flex';
+        }
+
+        function saveProductFromModal() {
+            let id = document.getElementById('productId').value;
+            let name = document.getElementById('prodName').value.trim();
+            let category = document.getElementById('prodCategory').value.trim();
+            let qty = parseInt(document.getElementById('prodQty').value);
+            let price = parseFloat(document.getElementById('prodPrice').value);
+            let supplier = document.getElementById('prodSupplier').value.trim();
+            if(!name || !category || isNaN(qty) || isNaN(price) || !supplier) { alert("Please fill all fields"); return; }
+            if(id) {
+                let index = products.findIndex(p => p.id == id);
+                if(index !== -1) products[index] = { ...products[index], name, category, quantity: qty, price, supplier };
+            } else {
+                let newId = products.length ? Math.max(...products.map(p=>p.id)) + 1 : 5;
+                products.push({ id: newId, name, category, quantity: qty, price, supplier });
+            }
+            document.getElementById('productModal').style.display = 'none';
+            renderProductManagement();
+        }
+
+        function renderSupplierPerProduct() {
+            let html = `<div class="card"><h3>Supplier Information per Product / Category</h3><div class="responsive-table"><table><thead><tr><th>Product</th><th>Category</th><th>Unit Price</th><th>Supplier</th><th>Contact</th></tr></thead><tbody>`;
+            products.forEach(p => {
+                html += `<tr><td><strong>${p.name}</strong></td><td>${p.category}</td><td class="price-highlight">$${p.price.toFixed(2)}</td><td>${p.supplier}</td><td>info@${p.supplier.replace(/\s/g,'').toLowerCase()}.com</td></tr>`;
+            });
+            html += `</tbody></table></div></div>`;
+            document.getElementById('dashboardContent').innerHTML = html;
+        }
+
+        function renderSupplierOverall() {
+            let supplierMap = new Map();
+            products.forEach(p => {
+                if(!supplierMap.has(p.supplier)) supplierMap.set(p.supplier, []);
+                supplierMap.get(p.supplier).push({name: p.name, price: p.price});
+            });
+            let html = `<div class="card"><h3><i class="fas fa-truck"></i> Overall Supplier Information</h3><div class="responsive-table"><table><thead><tr><th>Supplier Name</th><th>Products Supplied</th><th>Price Range</th></tr></thead><tbody>`;
+            for(let [sup, items] of supplierMap.entries()) {
+                let minPrice = Math.min(...items.map(i => i.price));
+                let maxPrice = Math.max(...items.map(i => i.price));
+                let productNames = items.map(i => i.name).join(', ');
+                html += `<tr><td><strong>${sup}</strong></td><td>${productNames}</td><td>$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}</td></tr>`;
+            }
+            html += `</tbody></table></div></div>`;
+            document.getElementById('dashboardContent').innerHTML = html;
+        }
+
+        function setActiveView(viewId) {
+            const titleMap = {
+                'sales-statement': 'Sales Statement', 'sales-category': 'Category Sales', 'sales-product': 'Product Sales',
+                'inv-category': 'Inventory by Category', 'inv-statement': 'Inventory Statement', 'inv-product': 'Manage Products (CRUD)', 'inv-supplier': 'Supplier per Product',
+                'supplier-info': 'Supplier Information'
+            };
+            document.getElementById('dynamicTitle').innerText = titleMap[viewId] || 'Dashboard';
+            if(viewId === 'sales-statement') renderSalesStatement('monthly');
+            else if(viewId === 'sales-category') renderCategorySales('monthly');
+            else if(viewId === 'sales-product') renderProductSales('monthly');
+            else if(viewId === 'inv-category') renderInventoryCategory();
+            else if(viewId === 'inv-statement') renderInventoryStatement();
+            else if(viewId === 'inv-product') renderProductManagement();
+            else if(viewId === 'inv-supplier') renderSupplierPerProduct();
+            else if(viewId === 'supplier-info') renderSupplierOverall();
+        }
+
+        // Login Logic
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const messageDiv = document.getElementById('loginMessage');
+            
+            if(username === 'admin' && password === 'admin123') {
+                messageDiv.innerHTML = '<i class="fas fa-circle-check"></i> Login successful! Redirecting to dashboard...';
+                messageDiv.style.background = '#e0f2e9';
+                messageDiv.style.color = '#1e6f3f';
+                messageDiv.style.borderLeftColor = '#2b9348';
+                setTimeout(() => {
+                    document.getElementById('loginPage').style.display = 'none';
+                    document.getElementById('dashboardApp').style.display = 'flex';
+                    setActiveView('sales-statement');
+                }, 1000);
+            } else {
+                messageDiv.innerHTML = '<i class="fas fa-circle-exclamation"></i> Invalid username or password. Use admin / admin123';
+                messageDiv.className = 'message-area error';
+                document.getElementById('loginPassword').value = '';
+                document.getElementById('loginPassword').focus();
+            }
+        }
+
+        function handleForgotPassword() {
+            document.getElementById('loginMessage').innerHTML = '<i class="fas fa-info-circle"></i> Demo credentials: Username: admin, Password: admin123';
+            document.getElementById('loginMessage').classList.remove('error');
+        }
+
+        // Dashboard Navigation
+        document.querySelectorAll('[data-view]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                let view = link.getAttribute('data-view');
+                setActiveView(view);
+            });
+        });
+        
+        document.querySelectorAll('[data-toggle]').forEach(toggle => {
+            toggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                let targetId = toggle.getAttribute('data-toggle');
+                let sub = document.getElementById(targetId);
+                if(sub) sub.classList.toggle('show');
+            });
+        });
+
+        // Event Listeners
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('forgotPasswordBtn').addEventListener('click', handleForgotPassword);
+        document.getElementById('dashboardLogout').addEventListener('click', () => {
+            if(confirm('Logout from admin panel?')) {
+                document.getElementById('dashboardApp').style.display = 'none';
+                document.getElementById('loginPage').style.display = 'flex';
+                document.getElementById('loginUsername').value = '';
+                document.getElementById('loginPassword').value = '';
+                document.getElementById('loginMessage').innerHTML = '<i class="fas fa-shield-alt"></i> Enter credentials to access the system';
+                document.getElementById('loginMessage').className = 'message-area';
+            }
+        });
+        
+        document.getElementById('closeModalBtn')?.addEventListener('click', () => document.getElementById('productModal').style.display = 'none');
+        document.getElementById('saveProductBtn')?.addEventListener('click', saveProductFromModal);
+        window.addEventListener('click', (e) => { if(e.target === document.getElementById('productModal')) document.getElementById('productModal').style.display = 'none'; });
+    </script>
+</body>
+</html>
