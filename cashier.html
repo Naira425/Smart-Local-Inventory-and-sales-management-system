@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cashier Dashboard | Smart Inventory System</title>
+    <link rel="stylesheet" href="cashier.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-app">
+        <div style="display: flex; min-height: 100vh;">
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <h2><i class="fas fa-cash-register"></i> Cashier Panel</h2>
+                    <p style="font-size: 0.7rem;">Point of Sale | Currency: Maluti (M)</p>
+                </div>
+                <div class="nav-menu">
+                    <div class="nav-link active" data-cashier-view="record-sale">
+                        <i class="fas fa-receipt"></i> Record Sale
+                    </div>
+                    <div class="nav-link" data-cashier-view="today-sales">
+                        <i class="fas fa-chart-line"></i> Today's Sales
+                    </div>
+                    <div class="nav-link" data-cashier-view="inventory-status">
+                        <i class="fas fa-boxes"></i> Inventory Status
+                    </div>
+                </div>
+            </div>
+            <div class="main-content">
+                <div class="top-bar">
+                    <div class="page-title"><h1 id="cashierTitle">💰 Record Sale</h1></div>
+                    <button class="logout-btn" id="cashierLogout"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                </div>
+                <div id="cashierContent"></div>
+            </div>
+        </div>
+    </div>
+    <script src="cashier.js"></script>
+</body>
+</html>

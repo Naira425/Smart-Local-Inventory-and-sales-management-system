@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Smart Inventory System</title>
+    <link rel="stylesheet" href="admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-app">
+        <div style="display: flex; min-height: 100vh;">
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <h2><i class="fas fa-chart-line"></i> Admin Panel</h2>
+                    <p style="font-size: 0.7rem;">Full Management | Currency: Maluti (M)</p>
+                </div>
+                <div class="nav-menu">
+                    <div class="nav-link" data-admin-view="notifications">
+                        <i class="fas fa-bell"></i> Notifications
+                        <span id="notificationBadge" class="badge-notification"></span>
+                    </div>
+                    <div class="nav-link" data-toggle="sales-sub">
+                        <i class="fas fa-chart-line"></i> Sales <i class="fas fa-chevron-down" style="margin-left: auto;"></i>
+                    </div>
+                    <ul class="submenu" id="sales-sub" style="display: none;">
+                        <li><a data-admin-view="sales-statement">📊 Sales Statement</a></li>
+                        <li><a data-admin-view="sales-category">📁 Category Sales</a></li>
+                        <li><a data-admin-view="sales-product">🏷️ Product Sales</a></li>
+                    </ul>
+                    <div class="nav-link" data-toggle="inventory-sub">
+                        <i class="fas fa-boxes"></i> Inventory <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <ul class="submenu" id="inventory-sub" style="display: none;">
+                        <li><a data-admin-view="inv-category">📦 Category View</a></li>
+                        <li><a data-admin-view="inv-statement">📑 Inventory Statement</a></li>
+                        <li><a data-admin-view="inv-product">✏️ Manage Products</a></li>
+                        <li><a data-admin-view="inv-supplier">🏭 Supplier per Product</a></li>
+                    </ul>
+                    <div class="nav-link" data-admin-view="supplier-info">
+                        <i class="fas fa-truck"></i> Supplier Information
+                    </div>
+                    <div class="nav-link" data-admin-view="employee-management">
+                        <i class="fas fa-users"></i> Employee Management
+                    </div>
+                </div>
+            </div>
+            <div class="main-content">
+                <div class="top-bar">
+                    <h1 id="adminTitle">Notifications</h1>
+                    <button class="logout-btn" id="adminLogout"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                </div>
+                <div id="adminContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <h3 id="productModalTitle">Add Product</h3>
+            <input type="hidden" id="productId">
+            <div class="form-row"><label>Product Name</label><input type="text" id="prodName"></div>
+            <div class="form-row"><label>Category</label><input type="text" id="prodCategory"></div>
+            <div class="form-row"><label>Quantity</label><input type="number" id="prodQuantity"></div>
+            <div class="form-row"><label>Price (M)</label><input type="number" step="0.01" id="prodPrice"></div>
+            <div class="form-row"><label>Supplier</label><input type="text" id="prodSupplier"></div>
+            <div class="form-row"><label>Supplier Contact</label><input type="text" id="prodSupplierContact"></div>
+            <div style="display:flex; gap:1rem; justify-content:flex-end;">
+                <button id="saveProductBtn" class="btn-primary">Save</button>
+                <button id="closeProductModalBtn" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee Modal -->
+    <div id="employeeModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Add Employee</h3>
+            <input type="hidden" id="employeeId">
+            <div class="form-row"><label>Full Name</label><input type="text" id="empName"></div>
+            <div class="form-row"><label>Username</label><input type="text" id="empUsername"></div>
+            <div class="form-row"><label>Role</label>
+                <select id="empRole">
+                    <option value="cashier">💰 Cashier</option>
+                    <option value="admin">⚙️ Admin</option>
+                </select>
+            </div>
+            <div class="form-row"><label>Default Password</label><input type="text" id="empPassword" value="temp123"></div>
+            <div style="display:flex; gap:1rem; justify-content:flex-end;">
+                <button id="saveEmployeeBtn" class="btn-primary">Save</button>
+                <button id="closeEmployeeModalBtn" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
