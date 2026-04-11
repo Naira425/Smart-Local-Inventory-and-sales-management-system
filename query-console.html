@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MySQL Query Console | Smart Inventory</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface2: #21262d;
+            --border: #30363d;
+            --text: #e6edf3;
+            --muted: #8b949e;
+            --accent: #58a6ff;
+            --accent2: #3fb950;
+            --error: #f85149;
+            --warn: #d29922;
+            --mono: 'JetBrains Mono', monospace;
+            --sans: 'Sora', sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Top Bar ── */
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0.9rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--accent);
+        }
+
+        .brand .db-icon {
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(135deg, #1f6feb, #388bfd);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+        }
+
+        .header-meta {
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--accent2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .back-btn {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.45rem 1rem;
+            border-radius: 6px;
+            font-family: var(--sans);
+            font-size: 0.82rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: 0.15s;
+        }
+        .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ── Main Layout ── */
+        .workspace {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* ── Sidebar: Quick Queries ── */
+        .sidebar {
+            width: 240px;
+            flex-shrink: 0;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-title {
+            padding: 1rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .quick-group { border-bottom: 1px solid var(--border); }
+        .quick-group-label {
+            padding: 0.6rem 1rem 0.3rem;
+            font-size: 0.68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--warn);
+        }
+
+        .quick-query {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            color: var(--muted);
+            transition: 0.12s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-left: 2px solid transparent;
+        }
+        .quick-query:hover {
+            background: var(--surface2);
+            color: var(--accent);
+            border-left-color: var(--accent);
+        }
+        .quick-query i { font-size: 0.65rem; width: 12px; }
+
+        /* ── Editor Panel ── */
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .editor-toolbar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0.6rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toolbar-label {
+            font-size: 0.72rem;
+            font-family: var(--mono);
+            color: var(--muted);
+            flex: 1;
+        }
+
+        .run-btn {
+            background: var(--accent2);
+            border: none;
+            color: #0d1117;
+            padding: 0.45rem 1.2rem;
+            border-radius: 6px;
+            font-family: var(--sans);
+            font-weight: 700;
+            font-size: 0.82rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: 0.15s;
+        }
+        .run-btn:hover { background: #56d364; }
+        .run-btn:active { transform: scale(0.97); }
+
+        .clear-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 0.45rem 0.9rem;
+            border-radius: 6px;
+            font-family: var(--sans);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .clear-btn:hover { border-color: var(--error); color: var(--error); }
+
+        /* ── SQL Textarea ── */
+        .sql-editor-wrap {
+            position: relative;
+            padding: 1rem;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .line-nums {
+            position: absolute;
+            left: 1rem;
+            top: 1rem;
+            font-family: var(--mono);
+            font-size: 0.82rem;
+            color: #484f58;
+            line-height: 1.6;
+            user-select: none;
+            pointer-events: none;
+            padding-top: 0.1rem;
+        }
+
+        #sqlInput {
+            width: 100%;
+            min-height: 160px;
+            max-height: 300px;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 0.88rem;
+            line-height: 1.6;
+            resize: vertical;
+            padding-left: 2.5rem;
+            caret-color: var(--accent);
+        }
+
+        #sqlInput::placeholder { color: #484f58; }
+
+        /* ── Results ── */
+        .results-panel {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .results-meta {
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .results-meta .ok { color: var(--accent2); }
+        .results-meta .err { color: var(--error); }
+
+        .results-table-wrap {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--mono);
+            font-size: 0.8rem;
+        }
+
+        .results-table th {
+            background: var(--surface2);
+            color: var(--accent);
+            padding: 0.6rem 0.9rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.73rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .results-table td {
+            padding: 0.55rem 0.9rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            white-space: nowrap;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .results-table tr:last-child td { border-bottom: none; }
+        .results-table tr:hover td { background: rgba(88,166,255,0.04); }
+
+        .null-val { color: var(--muted); font-style: italic; }
+        .num-val { color: #79c0ff; }
+        .bool-val { color: var(--warn); }
+
+        .exec-result {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent2);
+            border-radius: 8px;
+            padding: 1rem 1.2rem;
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            color: var(--accent2);
+        }
+
+        .error-box {
+            background: rgba(248,81,73,0.08);
+            border: 1px solid rgba(248,81,73,0.3);
+            border-left: 3px solid var(--error);
+            border-radius: 8px;
+            padding: 1rem 1.2rem;
+            font-family: var(--mono);
+            font-size: 0.83rem;
+            color: var(--error);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.3; display: block; }
+
+        /* Keyboard shortcut badge */
+        kbd {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.1rem 0.4rem;
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand">
+        <div class="db-icon"><i class="fas fa-database"></i></div>
+        MySQL Query Console
+        <span style="color:var(--muted);font-size:0.75rem;font-family:var(--mono);">smart_inventory</span>
+    </div>
+    <div class="header-meta">
+        <span class="status-dot"></span>
+        <span id="connStatus">Connecting…</span>
+    </div>
+    <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back to App</a>
+</header>
+
+<div class="workspace">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-title">Quick Queries</div>
+
+        <div class="quick-group">
+            <div class="quick-group-label">Tables</div>
+            <div class="quick-query" data-sql="SELECT * FROM employees;"><i class="fas fa-users"></i> All Employees</div>
+            <div class="quick-query" data-sql="SELECT * FROM products;"><i class="fas fa-box"></i> All Products</div>
+            <div class="quick-query" data-sql="SELECT * FROM sales ORDER BY sale_timestamp DESC;"><i class="fas fa-receipt"></i> All Sales</div>
+            <div class="quick-query" data-sql="SELECT * FROM suppliers;"><i class="fas fa-truck"></i> All Suppliers</div>
+        </div>
+
+        <div class="quick-group">
+            <div class="quick-group-label">Sales Reports</div>
+            <div class="quick-query" data-sql="SELECT * FROM v_sales_report;"><i class="fas fa-chart-line"></i> Sales Report View</div>
+            <div class="quick-query" data-sql="SELECT * FROM v_revenue_by_category;"><i class="fas fa-tags"></i> Revenue by Category</div>
+            <div class="quick-query" data-sql="SELECT * FROM v_revenue_by_product;"><i class="fas fa-chart-bar"></i> Revenue by Product</div>
+            <div class="quick-query" data-sql="SELECT * FROM sales WHERE sale_date = CURDATE();"><i class="fas fa-calendar-day"></i> Today's Sales</div>
+            <div class="quick-query" data-sql="SELECT SUM(total_amount) AS total_revenue, COUNT(*) AS total_orders FROM sales;"><i class="fas fa-coins"></i> Revenue Total</div>
+        </div>
+
+        <div class="quick-group">
+            <div class="quick-group-label">Inventory</div>
+            <div class="quick-query" data-sql="SELECT * FROM v_inventory_with_supplier;"><i class="fas fa-warehouse"></i> Inventory + Supplier</div>
+            <div class="quick-query" data-sql="SELECT * FROM v_inventory_with_supplier WHERE stock_status = 'OUT OF STOCK';"><i class="fas fa-exclamation-circle"></i> Out of Stock</div>
+            <div class="quick-query" data-sql="SELECT * FROM v_inventory_with_supplier WHERE stock_status = 'LOW STOCK';"><i class="fas fa-exclamation-triangle"></i> Low Stock</div>
+            <div class="quick-query" data-sql="SELECT category, SUM(quantity) AS total_units, SUM(quantity * price) AS value FROM products GROUP BY category;"><i class="fas fa-layer-group"></i> By Category</div>
+        </div>
+
+        <div class="quick-group">
+            <div class="quick-group-label">Advanced</div>
+            <div class="quick-query" data-sql="SHOW TABLES;"><i class="fas fa-table"></i> Show Tables</div>
+            <div class="quick-query" data-sql="DESCRIBE products;"><i class="fas fa-info-circle"></i> Describe Products</div>
+            <div class="quick-query" data-sql="DESCRIBE sales;"><i class="fas fa-info-circle"></i> Describe Sales</div>
+            <div class="quick-query" data-sql="SELECT s.name AS supplier, GROUP_CONCAT(p.name SEPARATOR ', ') AS products FROM suppliers s LEFT JOIN products p ON p.supplier_id = s.id GROUP BY s.name;"><i class="fas fa-sitemap"></i> Supplier→Products</div>
+        </div>
+    </div>
+
+    <!-- Editor + Results -->
+    <div class="editor-panel">
+        <div class="editor-toolbar">
+            <span class="toolbar-label">SQL Editor &nbsp;·&nbsp; <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to run</span>
+            <button class="clear-btn" id="clearBtn"><i class="fas fa-times"></i> Clear</button>
+            <button class="run-btn" id="runBtn"><i class="fas fa-play"></i> Run Query</button>
+        </div>
+
+        <div class="sql-editor-wrap">
+            <div class="line-nums" id="lineNums">1</div>
+            <textarea id="sqlInput" placeholder="-- Type your SQL query here…
+-- Example:
+SELECT * FROM products WHERE quantity < 10;"></textarea>
+        </div>
+
+        <div class="results-panel" id="resultsPanel">
+            <div class="empty-state">
+                <i class="fas fa-terminal"></i>
+                Run a query to see results here
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const API = 'http://localhost:3000/api';
+
+// Check connection
+async function checkConnection() {
+    const el = document.getElementById('connStatus');
+    try {
+        const res = await fetch(`${API}/products`);
+        if (res.ok) {
+            el.textContent = 'Connected · smart_inventory @ localhost';
+            el.style.color = '#3fb950';
+        } else throw new Error();
+    } catch {
+        el.textContent = 'Server offline — start with: node server.js';
+        el.style.color = '#f85149';
+    }
+}
+checkConnection();
+
+// Line numbers
+const sqlInput = document.getElementById('sqlInput');
+const lineNums = document.getElementById('lineNums');
+
+function updateLineNums() {
+    const lines = sqlInput.value.split('\n').length;
+    lineNums.innerHTML = Array.from({ length: lines }, (_, i) => i + 1).join('<br>');
+}
+sqlInput.addEventListener('input', updateLineNums);
+sqlInput.addEventListener('scroll', () => { lineNums.style.marginTop = `-${sqlInput.scrollTop}px`; });
+updateLineNums();
+
+// Keyboard shortcut
+sqlInput.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        runQuery();
+    }
+    // Tab inserts spaces
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = sqlInput.selectionStart;
+        const end = sqlInput.selectionEnd;
+        sqlInput.value = sqlInput.value.substring(0, start) + '    ' + sqlInput.value.substring(end);
+        sqlInput.selectionStart = sqlInput.selectionEnd = start + 4;
+        updateLineNums();
+    }
+});
+
+// Quick query sidebar
+document.querySelectorAll('.quick-query').forEach(el => {
+    el.addEventListener('click', () => {
+        sqlInput.value = el.dataset.sql;
+        updateLineNums();
+        runQuery();
+    });
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+    sqlInput.value = '';
+    updateLineNums();
+    document.getElementById('resultsPanel').innerHTML = '<div class="empty-state"><i class="fas fa-terminal"></i>Run a query to see results here</div>';
+});
+
+document.getElementById('runBtn').addEventListener('click', runQuery);
+
+function formatCellValue(val) {
+    if (val === null || val === undefined) return `<span class="null-val">NULL</span>`;
+    if (typeof val === 'number') return `<span class="num-val">${val}</span>`;
+    if (typeof val === 'boolean') return `<span class="bool-val">${val}</span>`;
+    // Detect numbers stored as strings
+    if (!isNaN(val) && val !== '') return `<span class="num-val">${val}</span>`;
+    return String(val).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+async function runQuery() {
+    const sql = sqlInput.value.trim();
+    if (!sql) return;
+
+    const panel = document.getElementById('resultsPanel');
+    panel.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i>Running query…</div>';
+
+    const t0 = performance.now();
+
+    try {
+        const res = await fetch(`${API}/query`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sql })
+        });
+        const data = await res.json();
+        const elapsed = (performance.now() - t0).toFixed(1);
+
+        if (data.error) {
+            panel.innerHTML = `
+                <div class="results-meta"><span class="err"><i class="fas fa-times-circle"></i> Error</span> · ${elapsed}ms</div>
+                <div class="error-box"><i class="fas fa-exclamation-circle"></i> ${data.error}</div>`;
+            return;
+        }
+
+        if (data.type === 'select') {
+            const { columns, rows } = data;
+            const rowCount = rows.length;
+            panel.innerHTML = `
+                <div class="results-meta">
+                    <span class="ok"><i class="fas fa-check-circle"></i> ${rowCount} row${rowCount !== 1 ? 's' : ''}</span>
+                    · ${elapsed}ms · ${columns.length} column${columns.length !== 1 ? 's' : ''}
+                </div>
+                <div class="results-table-wrap">
+                    <table class="results-table">
+                        <thead>
+                            <tr>${columns.map(c => `<th>${c}</th>`).join('')}</tr>
+                        </thead>
+                        <tbody>
+                            ${rowCount === 0
+                                ? `<tr><td colspan="${columns.length}" style="text-align:center;color:var(--muted);padding:2rem;">No rows returned</td></tr>`
+                                : rows.map(row => `<tr>${columns.map(c => `<td>${formatCellValue(row[c])}</td>`).join('')}</tr>`).join('')
+                            }
+                        </tbody>
+                    </table>
+                </div>`;
+        } else {
+            panel.innerHTML = `
+                <div class="results-meta"><span class="ok"><i class="fas fa-check-circle"></i> Query OK</span> · ${elapsed}ms</div>
+                <div class="exec-result">
+                    <i class="fas fa-check"></i> Affected rows: ${data.affectedRows}
+                    ${data.info ? `<br><span style="color:var(--muted)">${data.info}</span>` : ''}
+                </div>`;
+        }
+    } catch (err) {
+        panel.innerHTML = `
+            <div class="results-meta"><span class="err"><i class="fas fa-times-circle"></i> Connection Error</span></div>
+            <div class="error-box">Cannot reach server. Make sure <strong>node server.js</strong> is running on port 3000.</div>`;
+    }
+}
+</script>
+</body>
+</html>
